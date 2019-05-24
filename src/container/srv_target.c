@@ -87,6 +87,7 @@ cont_child_alloc_ref(void *key, unsigned int ksize, void *varg,
 		goto out_cond;
 
 	uuid_copy(cont->sc_uuid, key);
+	cont->sc_pool = pool;
 	cont->sc_dtx_resync_time = crt_hlc_get();
 	/* prevent aggregation till snapshot iv refreshed */
 	cont->sc_aggregation_max = 0;
@@ -1467,6 +1468,13 @@ cont_child_aggregate(struct ds_cont_child *cont, uint64_t *sleep)
 	/* Cap the aggregation upper bound to the snapshot in creating */
 	if (epoch_max >= cont->sc_aggregation_max)
 		epoch_max = cont->sc_aggregation_max - 1;
+
+	/* Aggregate until rebuild stable epoch. TODO: actually
+	 * we can skip this epoch XXX
+	 */
+	if (cont->sc_pool->spc_rebuild_epoch > 0 &&
+	    epoch_max >= cont->sc_pool->spc_rebuild_epoch)
+		epoch_max = cont->sc_pool->spc_rebuild_epoch;
 
 	D_ASSERTF(cinfo.ci_hae <= epoch_max,
 		  "Highest aggregated "DF_U64", Max "DF_U64"\n",

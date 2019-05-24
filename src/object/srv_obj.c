@@ -1402,8 +1402,9 @@ obj_iter_vos(crt_rpc_t *rpc, struct vos_iter_anchors *anchors,
 		param.ip_dkey = oei->oei_dkey;
 	if (oei->oei_akey.iov_len > 0)
 		param.ip_akey = oei->oei_akey;
-	param.ip_epr.epr_lo = oei->oei_epoch;
-	param.ip_epr.epr_hi = oei->oei_epoch;
+
+	param.ip_epr.epr_lo = oei->oei_epr.epr_lo;
+	param.ip_epr.epr_hi = oei->oei_epr.epr_hi;
 	param.ip_epc_expr = VOS_IT_EPC_LE;
 
 	if (opc == DAOS_OBJ_RECX_RPC_ENUMERATE) {

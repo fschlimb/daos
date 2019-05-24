@@ -543,5 +543,8 @@ out_lock:
 out_put:
 	cont_svc_put_leader(svc);
 
+	D_DEBUG(DB_TRACE, DF_UUID"/"DF_UUID" get %d snaps rc %d\n",
+		DP_UUID(pool_uuid), DP_UUID(cont_uuid), *snap_count, rc);
+
 	return rc;
 }

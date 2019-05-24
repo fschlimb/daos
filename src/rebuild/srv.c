@@ -1556,6 +1556,7 @@ rebuild_fini_one(void *arg)
 {
 	struct rebuild_tgt_pool_tracker	*rpt = arg;
 	struct rebuild_pool_tls		*pool_tls;
+	struct ds_pool_child		*dpc;
 
 	pool_tls = rebuild_pool_tls_lookup(rpt->rt_pool_uuid,
 					   rpt->rt_rebuild_ver);
@@ -1575,6 +1576,10 @@ rebuild_fini_one(void *arg)
 	/* close the opened local ds_cont on main XS */
 	D_ASSERT(dss_get_module_info()->dmi_xs_id != 0);
 	ds_cont_local_close(rpt->rt_coh_uuid);
+
+	dpc = ds_pool_child_lookup(rpt->rt_pool_uuid);
+	D_ASSERT(dpc != NULL);
+	dpc->spc_rebuild_epoch = 0;
 
 	return 0;
 }
@@ -1798,6 +1803,7 @@ rebuild_prepare_one(void *data)
 {
 	struct rebuild_tgt_pool_tracker	*rpt = data;
 	struct rebuild_pool_tls		*pool_tls;
+	struct ds_pool_child		*dpc;
 	int				 rc = 0;
 
 	pool_tls = rebuild_pool_tls_create(rpt->rt_pool_uuid, rpt->rt_poh_uuid,
@@ -1805,6 +1811,10 @@ rebuild_prepare_one(void *data)
 					   rpt->rt_rebuild_ver);
 	if (pool_tls == NULL)
 		return -DER_NOMEM;
+
+	dpc = ds_pool_child_lookup(rpt->rt_pool_uuid);
+	D_ASSERT(dpc != NULL);
+	dpc->spc_rebuild_epoch = crt_hlc_get();
 
 	D_ASSERT(dss_get_module_info()->dmi_xs_id != 0);
 	/* Create ds_container locally on main XS */
@@ -1962,6 +1972,20 @@ rebuild_tgt_prepare(crt_rpc_t *rpc, struct rebuild_tgt_pool_tracker **p_rpt)
 				DP_UUID(pool->sp_uuid));
 			D_GOTO(out, rc = -DER_INVAL);
 		}
+	}
+
+	if (pool->sp_iv_ns) {
+		/* XXX snapshot will not be allowed to be changed during
+		 * rebuild, let's invalidate local snapshot cache before
+		 * rebuild, so to make sure rebuild will use the updated
+		 * snapshot during rebuild fetch, otherwise it may cause
+		 * corruption.
+		 */
+		rc = cont_iv_snapshot_invalidate(pool->sp_iv_ns,
+						 CRT_IV_SHORTCUT_NONE,
+						 CRT_IV_SYNC_NONE);
+		if (rc)
+			D_GOTO(out, rc);
 	}
 
 	/* Create rpt for the target */
