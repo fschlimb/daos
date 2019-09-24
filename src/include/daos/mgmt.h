@@ -42,6 +42,7 @@ int dc_pool_evict(tse_task_t *task);
 int dc_pool_extend(tse_task_t *task);
 int dc_mgmt_set_params(tse_task_t *task);
 int dc_mgmt_profile(uint64_t modules, char *path, bool start);
+int dc_mgmt_add_mark(const char *mark);
 
 /** Client system handle */
 struct dc_mgmt_sys {

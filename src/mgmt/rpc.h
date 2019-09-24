@@ -54,7 +54,11 @@
 		ds_mgmt_params_set_hdlr, NULL),				\
 	X(MGMT_PROFILE,							\
 		0, &CQF_mgmt_profile,					\
-		ds_mgmt_profile_hdlr, NULL)
+		ds_mgmt_profile_hdlr, NULL),				\
+	X(MGMT_MARK,							\
+		0, &CQF_mgmt_mark,					\
+		ds_mgmt_mark_hdlr, NULL)
+
 
 #define MGMT_PROTO_SRV_RPC_LIST						\
 	X(MGMT_TGT_CREATE,						\
@@ -73,7 +77,12 @@
 	X(MGMT_TGT_MAP_UPDATE,						\
 		0, &CQF_mgmt_tgt_map_update,				\
 		ds_mgmt_hdlr_tgt_map_update,				\
-		&ds_mgmt_hdlr_tgt_map_update_co_ops)
+		&ds_mgmt_hdlr_tgt_map_update_co_ops),			\
+	X(MGMT_TGT_MARK,						\
+		0, &CQF_mgmt_mark,					\
+		ds_mgmt_tgt_mark_hdlr, NULL)
+
+
 
 /* Define for RPC enum population below */
 #define X(a, b, c, d, e) a
@@ -203,5 +212,13 @@ CRT_GEN_STRUCT(server_entry, DAOS_SEQ_SERVER_ENTRY);
 
 CRT_RPC_DECLARE(mgmt_tgt_map_update, DAOS_ISEQ_MGMT_TGT_MAP_UPDATE,
 		DAOS_OSEQ_MGMT_TGT_MAP_UPDATE)
+
+#define DAOS_ISEQ_MGMT_MARK /* input fields */	\
+	((d_string_t)		(m_mark)		CRT_VAR)
+
+#define DAOS_OSEQ_MGMT_MARK /* output fields */	\
+	((int32_t)		(m_rc)			CRT_VAR)
+
+CRT_RPC_DECLARE(mgmt_mark, DAOS_ISEQ_MGMT_MARK, DAOS_OSEQ_MGMT_MARK)
 
 #endif /* __MGMT_RPC_H__ */

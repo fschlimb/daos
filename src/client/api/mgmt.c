@@ -277,3 +277,8 @@ daos_pool_remove_replicas(const uuid_t uuid, const char *group,
 	return dc_task_schedule(task, true);
 }
 
+int
+daos_mgmt_add_mark(const char *mark)
+{
+	return dc_mgmt_add_mark(mark);
+}

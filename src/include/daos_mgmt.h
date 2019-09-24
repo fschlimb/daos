@@ -323,6 +323,15 @@ daos_pool_remove_replicas(const uuid_t uuid, const char *group,
 			  d_rank_list_t *svc, d_rank_list_t *targets,
 			  d_rank_list_t *failed, daos_event_t *ev);
 
+
+/**
+ * Add mark to servers.
+ *
+ * \param mark	[IN]	mark to add to the debug log.
+ */
+int
+daos_mgmt_add_mark(const char *mark);
+
 #if defined(__cplusplus)
 }
 #endif
