@@ -168,3 +168,21 @@ func (c *connList) PoolGetACL(req *PoolGetACLReq) (*PoolGetACLResp, error) {
 		ACL: &AccessControlList{Entries: pbResp.ACL},
 	}, nil
 }
+
+// PoolOverwriteACLReq contains the input parameters for PoolOverwriteACL
+type PoolOverwriteACLReq struct {
+	UUID string             // pool UUID
+	ACL  *AccessControlList // new ACL for the pool
+}
+
+// PoolOverwriteACLResp returns the updated ACL for the pool
+type PoolOverwriteACLResp struct {
+	ACL *AccessControlList // actual ACL of the pool
+}
+
+// PoolOverwriteACL sends a request to replace the pool's old Access Control List
+// with a new one. If it succeeds, it returns the updated ACL. If not, it returns
+// an error.
+func (c *connList) PoolOverwriteACL(*PoolOverwriteACLReq) (*PoolOverwriteACLResp, error) {
+	return nil, nil
+}
