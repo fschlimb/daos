@@ -205,7 +205,7 @@ func TestPoolGetACL_Success(t *testing.T) {
 
 	svc := newTestMgmtSvc(log)
 
-	expectedResp := &mgmtpb.GetACLResp{
+	expectedResp := &mgmtpb.ACLResp{
 		Status: 0,
 		ACL:    []string{"A::OWNER@:rw", "A:g:GROUP@:r"},
 	}

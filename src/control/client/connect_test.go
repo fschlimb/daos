@@ -40,12 +40,12 @@ func connectSetupServers(
 	ctrlrResults NvmeControllerResults, modules ScmModules,
 	moduleResults ScmModuleResults, pmems ScmNamespaces, mountResults ScmMountResults,
 	scanRet error, formatRet error, killRet error, connectRet error,
-	getACLRet *mockGetACLResult) Connect {
+	ACLRet *mockACLResult) Connect {
 
 	connect := newMockConnect(
 		log, state, ctrlrs, ctrlrResults, modules,
 		moduleResults, pmems, mountResults, scanRet, formatRet,
-		killRet, connectRet, getACLRet)
+		killRet, connectRet, ACLRet)
 
 	_ = connect.ConnectClients(servers)
 
@@ -57,11 +57,11 @@ func connectSetup(
 	state State, ctrlrs NvmeControllers, ctrlrResults NvmeControllerResults,
 	modules ScmModules, moduleResults ScmModuleResults, pmems ScmNamespaces,
 	mountResults ScmMountResults, scanRet error, formatRet error,
-	killRet error, connectRet error, getACLRet *mockGetACLResult) Connect {
+	killRet error, connectRet error, ACLRet *mockACLResult) Connect {
 
 	return connectSetupServers(MockServers, log, state, ctrlrs,
 		ctrlrResults, modules, moduleResults, pmems, mountResults, scanRet,
-		formatRet, killRet, connectRet, getACLRet)
+		formatRet, killRet, connectRet, ACLRet)
 }
 
 func defaultClientSetup(log logging.Logger) Connect {
@@ -289,7 +289,7 @@ func TestPoolGetACL(t *testing.T) {
 			if tt.expectedResp != nil {
 				expectedACL = tt.expectedResp.ACL.Entries
 			}
-			aclResult := &mockGetACLResult{
+			aclResult := &mockACLResult{
 				acl:    expectedACL,
 				status: tt.getACLRespStatus,
 				err:    tt.getACLErr,

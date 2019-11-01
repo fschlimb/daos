@@ -118,7 +118,7 @@ test_drpc_pool_get_acl_bad_uuid(void **state)
 {
 	Drpc__Call		call = DRPC__CALL__INIT;
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
-	Mgmt__GetACLResp	*acl_resp = NULL;
+	Mgmt__ACLResp		*acl_resp = NULL;
 
 	setup_get_acl_drpc_call(&call, "Not a UUID at all");
 
@@ -127,8 +127,8 @@ test_drpc_pool_get_acl_bad_uuid(void **state)
 	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
 	assert_non_null(resp.body.data);
 
-	acl_resp = mgmt__get_aclresp__unpack(NULL, resp.body.len,
-					     resp.body.data);
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, -DER_INVAL);
 	assert_int_equal(acl_resp->n_acl, 0);
@@ -139,7 +139,7 @@ test_drpc_pool_get_acl_pool_svc_fails(void **state)
 {
 	Drpc__Call		call = DRPC__CALL__INIT;
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
-	Mgmt__GetACLResp	*acl_resp = NULL;
+	Mgmt__ACLResp		*acl_resp = NULL;
 
 	setup_get_acl_drpc_call(&call, TEST_UUID);
 	ds_mgmt_pool_get_acl_return = -DER_UNKNOWN;
@@ -149,8 +149,8 @@ test_drpc_pool_get_acl_pool_svc_fails(void **state)
 	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
 	assert_non_null(resp.body.data);
 
-	acl_resp = mgmt__get_aclresp__unpack(NULL, resp.body.len,
-					     resp.body.data);
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, ds_mgmt_pool_get_acl_return);
 	assert_int_equal(acl_resp->n_acl, 0);
@@ -171,7 +171,7 @@ test_drpc_pool_get_acl_cant_translate_acl(void **state)
 {
 	Drpc__Call		call = DRPC__CALL__INIT;
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
-	Mgmt__GetACLResp	*acl_resp = NULL;
+	Mgmt__ACLResp		*acl_resp = NULL;
 	struct daos_ace		*ace;
 
 	setup_get_acl_drpc_call(&call, TEST_UUID);
@@ -186,8 +186,8 @@ test_drpc_pool_get_acl_cant_translate_acl(void **state)
 	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
 	assert_non_null(resp.body.data);
 
-	acl_resp = mgmt__get_aclresp__unpack(NULL, resp.body.len,
-					     resp.body.data);
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, -DER_INVAL);
 	assert_int_equal(acl_resp->n_acl, 0);
@@ -198,7 +198,7 @@ test_drpc_pool_get_acl_success(void **state)
 {
 	Drpc__Call		call = DRPC__CALL__INIT;
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
-	Mgmt__GetACLResp	*acl_resp = NULL;
+	Mgmt__ACLResp		*acl_resp = NULL;
 	int			i;
 
 	setup_get_acl_drpc_call(&call, TEST_UUID);
@@ -209,8 +209,8 @@ test_drpc_pool_get_acl_success(void **state)
 	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
 	assert_non_null(resp.body.data);
 
-	acl_resp = mgmt__get_aclresp__unpack(NULL, resp.body.len,
-					     resp.body.data);
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, 0);
 	assert_int_equal(acl_resp->n_acl, TEST_ACES_NR);

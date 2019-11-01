@@ -314,7 +314,7 @@ func (svc *mgmtSvc) PoolDestroy(ctx context.Context, req *mgmtpb.PoolDestroyReq)
 }
 
 // PoolGetACL forwards a request to the IO server to fetch a pool's Access Control List
-func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgmtpb.GetACLResp, error) {
+func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgmtpb.ACLResp, error) {
 	svc.log.Debugf("MgmtSvc.PoolGetACL dispatch, req:%+v\n", *req)
 
 	mi, err := svc.harness.GetMSLeaderInstance()
@@ -327,7 +327,7 @@ func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgm
 		return nil, err
 	}
 
-	resp := &mgmtpb.GetACLResp{}
+	resp := &mgmtpb.ACLResp{}
 	if err = proto.Unmarshal(dresp.Body, resp); err != nil {
 		return nil, errors.Wrap(err, "unmarshal PoolGetACL response")
 	}
@@ -335,6 +335,12 @@ func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgm
 	svc.log.Debugf("MgmtSvc.PoolGetACL dispatch, resp:%+v\n", *resp)
 
 	return resp, nil
+}
+
+// PoolOverwriteACL forwards a request to the IO server to overwrite a pool's Access Control List
+func (svc *mgmtSvc) PoolOverwriteACL(ctx context.Context, req *mgmtpb.OverwriteACLReq) (*mgmtpb.OverwriteACLResp, error) {
+	// TODO: Implement gRPC hook
+	return nil, nil
 }
 
 // BioHealthQuery implements the method defined for the Management Service.
