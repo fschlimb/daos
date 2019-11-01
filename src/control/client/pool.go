@@ -183,6 +183,32 @@ type PoolOverwriteACLResp struct {
 // PoolOverwriteACL sends a request to replace the pool's old Access Control List
 // with a new one. If it succeeds, it returns the updated ACL. If not, it returns
 // an error.
-func (c *connList) PoolOverwriteACL(*PoolOverwriteACLReq) (*PoolOverwriteACLResp, error) {
-	return nil, nil
+func (c *connList) PoolOverwriteACL(req *PoolOverwriteACLReq) (*PoolOverwriteACLResp, error) {
+	mc, err := chooseServiceLeader(c.controllers)
+	if err != nil {
+		return nil, err
+	}
+
+	pbReq := &mgmtpb.OverwriteACLReq{Uuid: req.UUID}
+	if req.ACL != nil {
+		pbReq.ACL = req.ACL.Entries
+	}
+
+	c.log.Debugf("Overwrite DAOS pool ACL request: %v", pbReq)
+
+	pbResp, err := mc.getSvcClient().PoolOverwriteACL(context.Background(), pbReq)
+	if err != nil {
+		return nil, err
+	}
+
+	c.log.Debugf("Overwrite DAOS pool ACL response: %v", pbResp)
+
+	if pbResp.GetStatus() != 0 {
+		return nil, errors.Errorf("DAOS returned error code: %d",
+			pbResp.GetStatus())
+	}
+
+	return &PoolOverwriteACLResp{
+		ACL: &AccessControlList{Entries: pbResp.ACL},
+	}, nil
 }
