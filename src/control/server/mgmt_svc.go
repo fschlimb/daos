@@ -339,8 +339,26 @@ func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgm
 
 // PoolOverwriteACL forwards a request to the IO server to overwrite a pool's Access Control List
 func (svc *mgmtSvc) PoolOverwriteACL(ctx context.Context, req *mgmtpb.OverwriteACLReq) (*mgmtpb.OverwriteACLResp, error) {
-	// TODO: Implement gRPC hook
-	return nil, nil
+	svc.log.Debugf("MgmtSvc.PoolOverwriteACL dispatch, req:%+v\n", *req)
+
+	mi, err := svc.harness.GetMSLeaderInstance()
+	if err != nil {
+		return nil, err
+	}
+
+	dresp, err := mi.CallDrpc(drpc.ModuleMgmt, drpc.MethodPoolOverwriteACL, req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &mgmtpb.OverwriteACLResp{}
+	if err = proto.Unmarshal(dresp.Body, resp); err != nil {
+		return nil, errors.Wrap(err, "unmarshal PoolOverwriteACL response")
+	}
+
+	svc.log.Debugf("MgmtSvc.PoolOverwriteACL dispatch, resp:%+v\n", *resp)
+
+	return resp, nil
 }
 
 // BioHealthQuery implements the method defined for the Management Service.
