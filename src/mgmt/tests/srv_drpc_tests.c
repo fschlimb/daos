@@ -30,7 +30,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <gurt/common.h>
+#include <daos/drpc.h>
 #include <daos_security.h>
 #include "../acl.pb-c.h"
 #include "../drpc_internal.h"
@@ -51,6 +51,7 @@ static int
 drpc_pool_acl_setup(void **state)
 {
 	mock_ds_mgmt_pool_get_acl_setup();
+	mock_ds_mgmt_pool_overwrite_acl_setup();
 
 	return 0;
 }
@@ -59,6 +60,7 @@ static int
 drpc_pool_acl_teardown(void **state)
 {
 	mock_ds_mgmt_pool_get_acl_teardown();
+	mock_ds_mgmt_pool_overwrite_acl_teardown();
 
 	return 0;
 }
@@ -66,26 +68,46 @@ drpc_pool_acl_teardown(void **state)
 /*
  * dRPC Get ACL tests
  */
+static Drpc__Call *
+new_drpc_call_with_bad_body(void)
+{
+	Drpc__Call	*call;
+	uint8_t		*bad_bytes;
+	size_t		bad_bytes_len = 16; /* arbitrary */
+	size_t		i;
+
+	D_ALLOC(call, sizeof(Drpc__Call));
+	assert_non_null(call);
+	drpc__call__init(call);
+
+	D_ALLOC_ARRAY(bad_bytes, bad_bytes_len);
+	assert_non_null(bad_bytes);
+
+	/* Fill out with junk that won't translate to a PB struct */
+	for (i = 0; i < bad_bytes_len; i++)
+		bad_bytes[i] = i;
+
+	call->body.data = bad_bytes;
+	call->body.len = bad_bytes_len;
+
+	return call;
+}
+
 static void
 test_drpc_pool_get_acl_bad_request(void **state)
 {
-	Drpc__Call	call = DRPC__CALL__INIT;
+	Drpc__Call	*call;
 	Drpc__Response	resp = DRPC__RESPONSE__INIT;
-	uint8_t		bad_bytes[16];
-	size_t		i;
 
-	/* Fill out with junk that won't translate to a GetACLReq */
-	for (i = 0; i < sizeof(bad_bytes); i++)
-		bad_bytes[i] = i;
+	call = new_drpc_call_with_bad_body();
 
-	call.body.data = bad_bytes;
-	call.body.len = sizeof(bad_bytes);
-
-	ds_mgmt_drpc_pool_get_acl(&call, &resp);
+	ds_mgmt_drpc_pool_get_acl(call, &resp);
 
 	assert_int_equal(resp.status, DRPC__STATUS__FAILURE);
 	assert_null(resp.body.data);
 	assert_int_equal(resp.body.len, 0);
+
+	drpc_call_free(call);
 }
 
 static void
@@ -132,10 +154,14 @@ test_drpc_pool_get_acl_bad_uuid(void **state)
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, -DER_INVAL);
 	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
 }
 
 static void
-test_drpc_pool_get_acl_pool_svc_fails(void **state)
+test_drpc_pool_get_acl_mgmt_svc_fails(void **state)
 {
 	Drpc__Call		call = DRPC__CALL__INIT;
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
@@ -154,6 +180,10 @@ test_drpc_pool_get_acl_pool_svc_fails(void **state)
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, ds_mgmt_pool_get_acl_return);
 	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
 }
 
 static struct daos_acl *
@@ -191,6 +221,10 @@ test_drpc_pool_get_acl_cant_translate_acl(void **state)
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, -DER_INVAL);
 	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
 }
 
 static void
@@ -218,11 +252,32 @@ test_drpc_pool_get_acl_success(void **state)
 	for (i = 0; i < TEST_ACES_NR; i++) {
 		assert_string_equal(acl_resp->acl[i], TEST_ACES[i]);
 	}
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
 }
 
 /*
  * dRPC overwrite ACL tests
  */
+static void
+test_drpc_pool_overwrite_acl_bad_request(void **state)
+{
+	Drpc__Call	*call;
+	Drpc__Response	resp = DRPC__RESPONSE__INIT;
+
+	call = new_drpc_call_with_bad_body();
+
+	ds_mgmt_drpc_pool_overwrite_acl(call, &resp);
+
+	assert_int_equal(resp.status, DRPC__STATUS__FAILURE);
+	assert_null(resp.body.data);
+	assert_int_equal(resp.body.len, 0);
+
+	drpc_call_free(call);
+}
+
 static void
 pack_modify_acl_req(Drpc__Call *call, Mgmt__ModifyACLReq *req)
 {
@@ -246,6 +301,9 @@ setup_modify_acl_drpc_call(Drpc__Call *call, char *uuid, const char **acl,
 	Mgmt__ModifyACLReq req = MGMT__MODIFY_ACLREQ__INIT;
 
 	req.uuid = uuid;
+	req.acl = (char **)acl;
+	req.n_acl = acl_nr;
+
 	pack_modify_acl_req(call, &req);
 }
 
@@ -256,7 +314,8 @@ test_drpc_pool_overwrite_acl_bad_uuid(void **state)
 	Drpc__Response		resp = DRPC__RESPONSE__INIT;
 	Mgmt__ACLResp		*acl_resp = NULL;
 
-	setup_modify_acl_drpc_call(&call, "bad invalid UUID", NULL, 0);
+	setup_modify_acl_drpc_call(&call, "invalid UUID", TEST_ACES,
+				   TEST_ACES_NR);
 
 	ds_mgmt_drpc_pool_overwrite_acl(&call, &resp);
 
@@ -268,6 +327,101 @@ test_drpc_pool_overwrite_acl_bad_uuid(void **state)
 	assert_non_null(acl_resp);
 	assert_int_equal(acl_resp->status, -DER_INVAL);
 	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
+}
+
+static void
+test_drpc_pool_overwrite_acl_bad_acl(void **state)
+{
+	Drpc__Call		call = DRPC__CALL__INIT;
+	Drpc__Response		resp = DRPC__RESPONSE__INIT;
+	Mgmt__ACLResp		*acl_resp = NULL;
+	size_t			bad_nr = 2;
+	static const char	*bad_aces[] = {"A::OWNER@:rw", "invalid"};
+
+	setup_modify_acl_drpc_call(&call, TEST_UUID, bad_aces,
+				   bad_nr);
+
+	ds_mgmt_drpc_pool_overwrite_acl(&call, &resp);
+
+	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
+	assert_non_null(resp.body.data);
+
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
+	assert_non_null(acl_resp);
+	assert_int_equal(acl_resp->status, -DER_INVAL);
+	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
+}
+
+static void
+test_drpc_pool_overwrite_acl_mgmt_svc_fails(void **state)
+{
+	Drpc__Call		call = DRPC__CALL__INIT;
+	Drpc__Response		resp = DRPC__RESPONSE__INIT;
+	Mgmt__ACLResp		*acl_resp = NULL;
+
+	setup_modify_acl_drpc_call(&call, TEST_UUID, TEST_ACES, TEST_ACES_NR);
+	ds_mgmt_pool_overwrite_acl_return = -DER_UNKNOWN;
+
+	ds_mgmt_drpc_pool_overwrite_acl(&call, &resp);
+
+	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
+	assert_non_null(resp.body.data);
+
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
+	assert_non_null(acl_resp);
+	assert_int_equal(acl_resp->status, ds_mgmt_pool_overwrite_acl_return);
+	assert_int_equal(acl_resp->n_acl, 0);
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
+}
+
+static void
+test_drpc_pool_overwrite_acl_success(void **state)
+{
+	Drpc__Call		call = DRPC__CALL__INIT;
+	Drpc__Response		resp = DRPC__RESPONSE__INIT;
+	Mgmt__ACLResp		*acl_resp = NULL;
+	size_t			i;
+
+	setup_modify_acl_drpc_call(&call, TEST_UUID, TEST_ACES, TEST_ACES_NR);
+
+	/*
+	 * Set up the mgmt svc overwrite function to return the same ACEs
+	 * we passed in as its result.
+	 */
+	assert_int_equal(daos_acl_from_strs(TEST_ACES, TEST_ACES_NR,
+			 &ds_mgmt_pool_overwrite_acl_result), 0);
+
+	ds_mgmt_drpc_pool_overwrite_acl(&call, &resp);
+
+	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
+	assert_non_null(resp.body.data);
+
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
+	assert_non_null(acl_resp);
+	assert_int_equal(acl_resp->status, 0);
+	assert_int_equal(acl_resp->n_acl, TEST_ACES_NR);
+
+	for (i = 0; i < TEST_ACES_NR; i++) {
+		assert_string_equal(acl_resp->acl[i], TEST_ACES[i]);
+	}
+
+	mgmt__aclresp__free_unpacked(acl_resp, NULL);
+	D_FREE(call.body.data);
+	D_FREE(resp.body.data);
 }
 
 #define ACL_TEST(x)	cmocka_unit_test_setup_teardown(x, \
@@ -279,10 +433,14 @@ main(void)
 	const struct CMUnitTest tests[] = {
 		ACL_TEST(test_drpc_pool_get_acl_bad_request),
 		ACL_TEST(test_drpc_pool_get_acl_bad_uuid),
-		ACL_TEST(test_drpc_pool_get_acl_pool_svc_fails),
+		ACL_TEST(test_drpc_pool_get_acl_mgmt_svc_fails),
 		ACL_TEST(test_drpc_pool_get_acl_cant_translate_acl),
 		ACL_TEST(test_drpc_pool_get_acl_success),
+		ACL_TEST(test_drpc_pool_overwrite_acl_bad_request),
 		ACL_TEST(test_drpc_pool_overwrite_acl_bad_uuid),
+		ACL_TEST(test_drpc_pool_overwrite_acl_bad_acl),
+		ACL_TEST(test_drpc_pool_overwrite_acl_mgmt_svc_fails),
+		ACL_TEST(test_drpc_pool_overwrite_acl_success),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
