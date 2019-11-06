@@ -338,7 +338,7 @@ func (svc *mgmtSvc) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLReq) (*mgm
 }
 
 // PoolOverwriteACL forwards a request to the IO server to overwrite a pool's Access Control List
-func (svc *mgmtSvc) PoolOverwriteACL(ctx context.Context, req *mgmtpb.OverwriteACLReq) (*mgmtpb.OverwriteACLResp, error) {
+func (svc *mgmtSvc) PoolOverwriteACL(ctx context.Context, req *mgmtpb.ModifyACLReq) (*mgmtpb.ACLResp, error) {
 	svc.log.Debugf("MgmtSvc.PoolOverwriteACL dispatch, req:%+v\n", *req)
 
 	mi, err := svc.harness.GetMSLeaderInstance()
@@ -351,7 +351,7 @@ func (svc *mgmtSvc) PoolOverwriteACL(ctx context.Context, req *mgmtpb.OverwriteA
 		return nil, err
 	}
 
-	resp := &mgmtpb.OverwriteACLResp{}
+	resp := &mgmtpb.ACLResp{}
 	if err = proto.Unmarshal(dresp.Body, resp); err != nil {
 		return nil, errors.Wrap(err, "unmarshal PoolOverwriteACL response")
 	}

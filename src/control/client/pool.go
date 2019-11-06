@@ -189,7 +189,7 @@ func (c *connList) PoolOverwriteACL(req *PoolOverwriteACLReq) (*PoolOverwriteACL
 		return nil, err
 	}
 
-	pbReq := &mgmtpb.OverwriteACLReq{Uuid: req.UUID}
+	pbReq := &mgmtpb.ModifyACLReq{Uuid: req.UUID}
 	if req.ACL != nil {
 		pbReq.ACL = req.ACL.Entries
 	}

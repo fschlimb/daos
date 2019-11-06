@@ -216,11 +216,11 @@ func (m *mockMgmtSvcClient) PoolGetACL(ctx context.Context, req *mgmtpb.GetACLRe
 	return &mgmtpb.ACLResp{ACL: m.ACLRet.acl, Status: m.ACLRet.status}, nil
 }
 
-func (m *mockMgmtSvcClient) PoolOverwriteACL(ctx context.Context, req *mgmtpb.OverwriteACLReq, o ...grpc.CallOption) (*mgmtpb.OverwriteACLResp, error) {
+func (m *mockMgmtSvcClient) PoolOverwriteACL(ctx context.Context, req *mgmtpb.ModifyACLReq, o ...grpc.CallOption) (*mgmtpb.ACLResp, error) {
 	if m.ACLRet.err != nil {
 		return nil, m.ACLRet.err
 	}
-	return &mgmtpb.OverwriteACLResp{ACL: m.ACLRet.acl, Status: m.ACLRet.status}, nil
+	return &mgmtpb.ACLResp{ACL: m.ACLRet.acl, Status: m.ACLRet.status}, nil
 }
 
 func (m *mockMgmtSvcClient) BioHealthQuery(
