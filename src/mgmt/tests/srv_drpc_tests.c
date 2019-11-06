@@ -44,11 +44,11 @@ static const char	*TEST_ACES[] = {"A::OWNER@:rw",
 					"A:G:GROUP@:r"};
 
 /*
- * dRPC Get ACL setup/teardown
+ * dRPC setup/teardown for ACL related tests
  */
 
 static int
-drpc_pool_get_acl_setup(void **state)
+drpc_pool_acl_setup(void **state)
 {
 	mock_ds_mgmt_pool_get_acl_setup();
 
@@ -56,7 +56,7 @@ drpc_pool_get_acl_setup(void **state)
 }
 
 static int
-drpc_pool_get_acl_teardown(void **state)
+drpc_pool_acl_teardown(void **state)
 {
 	mock_ds_mgmt_pool_get_acl_teardown();
 
@@ -220,18 +220,69 @@ test_drpc_pool_get_acl_success(void **state)
 	}
 }
 
-#define GET_ACL_TEST(x)	cmocka_unit_test_setup_teardown(x, \
-						drpc_pool_get_acl_setup, \
-						drpc_pool_get_acl_teardown)
+/*
+ * dRPC overwrite ACL tests
+ */
+static void
+pack_modify_acl_req(Drpc__Call *call, Mgmt__ModifyACLReq *req)
+{
+	size_t	len;
+	uint8_t	*body;
+
+	len = mgmt__modify_aclreq__get_packed_size(req);
+	D_ALLOC(body, len);
+	assert_non_null(body);
+
+	mgmt__modify_aclreq__pack(req, body);
+
+	call->body.data = body;
+	call->body.len = len;
+}
+
+static void
+setup_modify_acl_drpc_call(Drpc__Call *call, char *uuid, const char **acl,
+			      size_t acl_nr)
+{
+	Mgmt__ModifyACLReq req = MGMT__MODIFY_ACLREQ__INIT;
+
+	req.uuid = uuid;
+	pack_modify_acl_req(call, &req);
+}
+
+static void
+test_drpc_pool_overwrite_acl_bad_uuid(void **state)
+{
+	Drpc__Call		call = DRPC__CALL__INIT;
+	Drpc__Response		resp = DRPC__RESPONSE__INIT;
+	Mgmt__ACLResp		*acl_resp = NULL;
+
+	setup_modify_acl_drpc_call(&call, "bad invalid UUID", NULL, 0);
+
+	ds_mgmt_drpc_pool_overwrite_acl(&call, &resp);
+
+	assert_int_equal(resp.status, DRPC__STATUS__SUCCESS);
+	assert_non_null(resp.body.data);
+
+	acl_resp = mgmt__aclresp__unpack(NULL, resp.body.len,
+					 resp.body.data);
+	assert_non_null(acl_resp);
+	assert_int_equal(acl_resp->status, -DER_INVAL);
+	assert_int_equal(acl_resp->n_acl, 0);
+}
+
+#define ACL_TEST(x)	cmocka_unit_test_setup_teardown(x, \
+						drpc_pool_acl_setup, \
+						drpc_pool_acl_teardown)
 int
 main(void)
 {
 	const struct CMUnitTest tests[] = {
-		GET_ACL_TEST(test_drpc_pool_get_acl_bad_request),
-		GET_ACL_TEST(test_drpc_pool_get_acl_bad_uuid),
-		GET_ACL_TEST(test_drpc_pool_get_acl_pool_svc_fails),
-		GET_ACL_TEST(test_drpc_pool_get_acl_cant_translate_acl),
-		GET_ACL_TEST(test_drpc_pool_get_acl_success),
+		ACL_TEST(test_drpc_pool_get_acl_bad_request),
+		ACL_TEST(test_drpc_pool_get_acl_bad_uuid),
+		ACL_TEST(test_drpc_pool_get_acl_pool_svc_fails),
+		ACL_TEST(test_drpc_pool_get_acl_cant_translate_acl),
+		ACL_TEST(test_drpc_pool_get_acl_success),
+		ACL_TEST(test_drpc_pool_overwrite_acl_bad_uuid),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
