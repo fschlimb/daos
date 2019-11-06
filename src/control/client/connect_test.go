@@ -378,11 +378,10 @@ func TestPoolOverwriteACL(t *testing.T) {
 				status: tt.overwriteACLRespStatus,
 				err:    tt.overwriteACLErr,
 			}
-			cc := connectSetupServers(tt.addr, log, Ready, MockFeatures,
-				MockCtrlrs, MockCtrlrResults, MockModules,
-				MockModuleResults, MockPmemDevices, MockMountResults,
-				nil, nil, nil, nil, nil, nil,
-				aclResult)
+			cc := connectSetupServers(tt.addr, log, Ready,
+				MockCtrlrs, MockCtrlrResults, MockScmModules,
+				MockModuleResults, MockScmNamespaces, MockMountResults,
+				nil, nil, nil, nil, aclResult)
 
 			req := &PoolOverwriteACLReq{
 				UUID: "TestUUID",
