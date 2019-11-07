@@ -113,7 +113,7 @@
 	X(POOL_PROP_SET,						\
 		0, &CQF_pool_prop_set,					\
 		ds_pool_prop_set_handler,				\
-		NULL),
+		NULL)
 
 /* Define for RPC enum population below */
 #define X(a, b, c, d, e) a
