@@ -19,7 +19,7 @@ DAOS is licensed under the Apache License Version 2.0. Please see the [LICENSE](
 The DAOS admin guide is available [online](https://daos-stack.github.io).
 
 #### User area:
-* [Overview of the DAOS storage model](doc/storage_model.md)
+* [Overview of the DAOS storage model](doc/overview/storage.md)
 * DAOS API
   * C [native API](src/include/) and [man pages](doc/man/man3)
   * Python [bindings](src/utils/py/)
